@@ -3,13 +3,13 @@ CC = clang
 AR = ar
 RANLIB = ranlib
 
-ifneq ($(is_mswin),)
+ifeq ($(is_mswin),1)
   LDOUTPUT = -o $@.exe#  Otherwise we get names without extension (unlike with gcc).
 endif
 
 include $(dir $(lastword $(MAKEFILE_LIST)))/Makefile_base_either_gcc_or_clang
 
-ifeq ($(plain_compiler),)
+ifneq ($(want_plain_compiler),1)
   # cxxall += -fno-fast-math $(gcc_safe_precise_math)#  For my test suite.
   # cxxall += -msse4.1
   # cxxall += -frtti#  optional "run-time type information", required for some examples in ./test/native

@@ -20,7 +20,7 @@ machine_arch = -march=native#  Fastest code on the local machine.
 
 # LDFLAGS += $(if $(omit_omp:0=),,-fopenmp)#  For OpenMP.
 
-ifeq ($(plain_compiler),)
+ifneq ($(want_plain_compiler),1)
   cpedantic = $(if $(ignore_compile_warnings:0=),,-Werror) \
     -Wall -Wextra -Wformat=2 -pedantic -Wswitch-default -Wdisabled-optimization \
     -Wmissing-declarations -Wpointer-arith -Wcast-align -Wredundant-decls \
@@ -66,14 +66,14 @@ gcc_safe_precise_math = -fno-unsafe-math-optimizations -ffp-contract=off \
 #	$(COMPILE.cpp) $(OUTPUT_OPTION) $<
 %.o : %.cpp
 #	@echo $(CXX) $<
-	$(if $(plain_compiler:0=)$(DEBUG_MAKE),,@)$(COMPILE.cpp) -o $@ $(foreach f,$<,$(call drive_abspath,$(f)))
+	$(if $(want_plain_compiler:0=)$(DEBUG_MAKE),,@)$(COMPILE.cpp) -o $@ $(foreach f,$<,$(call drive_abspath,$(f)))
 
 # Use absolute pathnames for source files, to get these in warnings and errors.
 # %.o : %.c
 #	$(COMPILE.c) $(OUTPUT_OPTION) $<
 %.o : %.c
 #	@echo $(CXX) $<
-	$(if $(plain_compiler:0=)$(DEBUG_MAKE),,@)$(COMPILE.c) -o $@ $(foreach f,$<,$(call drive_abspath,$(f)))
+	$(if $(want_plain_compiler:0=)$(DEBUG_MAKE),,@)$(COMPILE.c) -o $@ $(foreach f,$<,$(call drive_abspath,$(f)))
 
 ## Machine architectures:
 # Found using: http://stackoverflow.com/questions/5470257/how-to-see-which-flags-march-native-will-activate

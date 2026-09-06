@@ -13,7 +13,7 @@ CRUMBS ?= *.ilk *.pdb *.asm *[A-Za-z_0-9]?.pch#  Wildcard *.pch would also incor
 LDOUTPUT ?= -Fe$@
 no_warnings = -W0
 
-win_base = 1
+is_win_base = 1
 CXX = cl
 CC = cl
 
@@ -24,7 +24,7 @@ ccommon += -EHsc
 # On VC 2022, C++23 P2128R6 "Multidimensional subscript operator" requires c++latest rather than c++23preview.
 cxxall += $(if $(CXX_STD),-std:$(patsubst c++23,c++latest,$(CXX_STD)))
 
-ifeq ($(plain_compiler),)
+ifneq ($(want_plain_compiler),1)
   disable_warnings_in_headers = -wd4820 -wd4986 -wd4514 -wd4710 -wd4668 -wd4917 -wd4350 -wd4265 -wd4571 -wd4355
   disable_my_warnings = -wd4127 -wd4512
   disable_other_warnings = -wd4625 -wd4626 -wd4365 -wd4061 -wd4191 -wd4711 -wd4557 -wd4640  -wd4623 -wd4647 -wd5219
@@ -36,7 +36,7 @@ ifeq ($(plain_compiler),)
   # cxx_not_needed = -Zc:wchar_t -Zc.forScope -Gd -errorReport:queue
   cpedantic = -W4 $(cxx_thorough_warnings)
   ccommon += $(if $(ignore_compile_warnings:0=),,-WX)
-  ccommon += -D_CRT_SECURE_NO_WARNINGS -D_SCL_SECURE_NO_WARNINGS
+  ccommon += -D_CRT_SECURE_NO_WARNINGS
   ccommon += -nologo -Oi -Gm- -Zc:rvalueCast -fp:fast -FC -Zc:preprocessor
   ccommon += $(if $(PEDANTIC:0=),$(cpedantic))
   # ccommon += -D_CRT_DECLARE_NONSTDC_NAMES=1#  Obviate the need for HH_POSIX(fdopen) (but still needed for clang).
@@ -46,7 +46,7 @@ ifeq ($(plain_compiler),)
   commondbg += -Od $(if $(use_dll:0=),-MDd,-MTd) -GS  -D "_DEBUG" -Z7   -RTC1
   cxxrel += $(commonrel)
   cxxdbg += $(commondbg)
-endif  # plain_compiler
+endif
 
 cxxall += $(ccommon)
 c-all += $(ccommon) -wd4255#  For "no function prototype given: converting '()' to '(void)'".
@@ -61,13 +61,13 @@ cxx_disable_all_warnings = -w
 # echo "$$PATH"; cl
 %.obj : %.cpp
 #	@echo $(CXX) $<
-	$(if $(plain_compiler:0=)$(DEBUG_MAKE),,@)$(COMPILE.cpp) -Fo$@ $<
+	$(if $(want_plain_compiler:0=)$(DEBUG_MAKE),,@)$(COMPILE.cpp) -Fo$@ $<
 
 # %.o : %.c
 #	$(COMPILE.c) $(OUTPUT_OPTION) $<
 %.obj : %.c
 #	@echo $(CXX) $<
-	$(if $(plain_compiler:0=)$(DEBUG_MAKE),,@)$(COMPILE.c) -Fo$@ $<
+	$(if $(want_plain_compiler:0=)$(DEBUG_MAKE),,@)$(COMPILE.c) -Fo$@ $<
 
 %.asm : %.cpp
 	$(filter-out ,$(COMPILE.cpp)) -FAs -Fa$@ -Fov.$(@:$(extasm)=$(extobj)) $(@:$(extasm)=cpp)

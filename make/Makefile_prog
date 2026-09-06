@@ -7,7 +7,7 @@
 #  exe_dir = .#  if not the default $(MeshRoot)/bin/$(CONFIG)
 #  include $(MeshRoot)/make/Makefile_prog
 
-ifeq ($(defs_loaded),)
+ifneq ($(defs_loaded),1)
   include $(MeshRoot)/make/Makefile_defs
 endif
 

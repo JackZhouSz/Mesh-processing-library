@@ -2,7 +2,7 @@
 #  MeshRoot = ..
 #  include $(MeshRoot)/make/Makefile_lib
 
-ifeq ($(defs_loaded),)
+ifneq ($(defs_loaded),1)
   include $(MeshRoot)/make/Makefile_defs
 endif
 

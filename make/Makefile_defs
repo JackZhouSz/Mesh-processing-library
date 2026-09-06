@@ -2,7 +2,7 @@
 # It sets default variables, functions, and rules.
 # (The "Possible configuration settings" below can be adjusted.)
 
-ifneq ($(defs_loaded),)   # An include guard; should be checked to avoid loading this file more than once.
+ifeq ($(defs_loaded),1)   # An include guard; should be checked to avoid loading this file more than once.
   $(error $(lastword $(MAKEFILE_LIST)) loaded more than once)
 endif
 defs_loaded = 1
@@ -21,8 +21,8 @@ is_msys := $(if $(findstring :/c/,:$(PATH)),1)#  Running under Msys?
 is_mac := $(call file_exists,/System/Library/CoreServices/SystemVersion.plist)#  Running on macOS?
 
 ifeq ($(MeshRoot),)
-  $(warning MeshRoot variable not set; set to default value of "..")
   MeshRoot ?= ..#  If not already set, best guess is "1 directory above the project file", e.g. for libHh.
+  $(warning MeshRoot variable not set; setting it to a default value of '$(MeshRoot)')
 endif
 $(if $(call file_exists $(MeshRoot)/mesh_processing.sln),,$(warn MeshRoot='$(MeshRoot)' does point to the mesh_processing repo root))
 
@@ -40,7 +40,8 @@ endif
 export CONFIG ?= $(word $(words $(build_configs)),$(build_configs))# Select the last config as default.
 $(if $(filter $(CONFIG),all $(configs)),,$(error CONFIG=$(CONFIG) is not recognized among [all $(configs)]))
 
-win32 ?= $(if $(and $(is_mswin),$(filter-out cygwin,$(CONFIG))),1)#  Hopefully equivalent to defined(_WIN32).
+is_win32 ?= $(if $(and $(is_mswin:0=),$(filter-out cygwin,$(CONFIG))),1)#  Hopefully equivalent to defined(_WIN32).
+is_unix_like ?= $(if $(filter cygwin unix,$(CONFIG)),1)#  Configs where libjpeg/libpng and POSIX libraries are built-in.
 
 SHELL = bash#   sh is standard ("for i in $var; do; done"); bash is necessary for "shopt nullglob", [[ ]], etc.
 
@@ -53,7 +54,7 @@ ifeq ($(is_msys),1)  # Fix PATH for msys make.
 endif
 
 # Print out useful information, if uncommented.
-# $(info VER=$(MAKE_VERSION) goals=$(MAKECMDGOALS) is_mswin=$(is_mswin) is_cygwin=$(is_cygwin) is_msys=$(is_msys) win32=$(win32) CONFIG=$(CONFIG) PATH=$(PATH))
+# $(info VER=$(MAKE_VERSION) goals=$(MAKECMDGOALS) is_mswin=$(is_mswin) is_cygwin=$(is_cygwin) is_msys=$(is_msys) is_win32=$(is_win32) is_unix_like=$(is_unix_like) CONFIG=$(CONFIG) PATH=$(PATH))
 # $(info .VARIABLES=$(.VARIABLES))
 
 # http://stackoverflow.com/questions/35516996/gnu-make-prepend-a-recursively-expanded-variable/
@@ -72,7 +73,7 @@ prepend = \
 # Function to prepend a directory to the current PATH.  This complicated code verifies the existence of the directory,
 #  removes any drive letter, adds a /c/ or /cygdrive/c/ prefix, and/or replaces "/" by "\".
 # e.g.: $(call prepend_PATH,c:/Program Files (x86)/Microsoft SDKs/Windows/v10.0A/bin/NETFX 4.6 Tools/x64/)
-prepend_PATH = $(call prepend,PATH,$(if $(findstring :,$(1)),$(if $(is_cygwin)$(is_msys),$(if $(is_cygwin),/cygdrive)/$(word 1,$(subst :, ,$(1)))$(wordlist 2,$(words $(subst :, ,$(1))),$(subst :, ,$(1))),$(subst /,\,$(wordlist 2,$(words $(subst :, ,$(1))),$(subst :, ,$(1))))),$(1)):)
+prepend_PATH = $(call prepend,PATH,$(if $(findstring :,$(1)),$(if $(is_cygwin:0=)$(is_msys:0=),$(if $(is_cygwin:0=),/cygdrive)/$(word 1,$(subst :, ,$(1)))$(wordlist 2,$(words $(subst :, ,$(1))),$(subst :, ,$(1))),$(subst /,\,$(wordlist 2,$(words $(subst :, ,$(1))),$(subst :, ,$(1))))),$(1)):)
 
 assert_prepend_PATH = $(if $(call file_exists,$(1)),$(call prepend_PATH,$(1)),$(error Directory '$(1)' does not exist, so cannot be added to PATH))
 try_prepend_PATH = $(if $(call file_exists,$(1)),$(call prepend_PATH,$(1)))
@@ -93,16 +94,17 @@ cppinc += -D_UNICODE -DUNICODE#  (Useful for alternative testing since my msbuil
 # cppinc += -DHH_NO_LIB_REFERENCES
 # cppinc += -DHH_NO_HH_INIT
 
-# Also update CXX_STD in clean_all (clang-tidy), LanguageStandard in hhmain.props and in LoopAPILib.vcxproj.
-# And, cmd_makedep.  And, build_and_test_using_*.sh
-# And, consider the gnu++ conversion in Makefile_config_cygwin and the c++23preview in Makefile_base_win.
+# Also update '-std=' in .clang-tidy, LanguageStandard in hhmain.props and LoopAPILib.vcxproj,
+# build_and_test_using_*.sh, the gnu++ conversion in Makefile_config_cygwin, and c++23latest in Makefile_base_win.
 CXX_STD ?= c++23
 
 # PEDANTIC ?= 1
 
-ifeq ($(filter cygwin unix,$(CONFIG)),)  # CONFIG != cygwin or unix  (on cygwin/unix, libjpg and libpng are built-in).
+ifneq ($(is_unix_like),1)  # If not cygwin/unix (with built-in libjpg and libpng), just use ffmpeg for image/video IO.
   cppinc += -DHH_NO_IMAGE_LIBS
 endif
+
+cppinc += $(if $(is_win32:0=),-DNOMINMAX)#  Prevent min() and max() macros in <windows.h>.
 
 ignore_compile_warnings ?= 1
 
@@ -149,11 +151,11 @@ dummy_goal:  # Introduce a dummy goal so that we can reset the .DEFAULT_GOAL bel
 # The "rm -f $@" is introduced to delete any Unix executable "$@" in the same location if building "$@.exe", to avoid
 # having that Unix executable being considered when running a *_test.script.
 % : %.cpp
-	$(if $(plain_compiler:0=)$(DEBUG_MAKE),,@)$(if $(is_mswin:0=),rm -f $@; )$(CXX) $(LDOUTPUT) $(CXXFLAGS) $(CPPFLAGS) $(cxxexe) $(TARGET_ARCH) \
+	$(if $(want_plain_compiler:0=)$(DEBUG_MAKE),,@)$(if $(is_mswin:0=),rm -f $@; )$(CXX) $(LDOUTPUT) $(CXXFLAGS) $(CPPFLAGS) $(cxxexe) $(TARGET_ARCH) \
 	  $(call add_drive,$(foreach f,$<,$(abspath $(f))) $(LDLIBS)) $(LDFLAGS)
 
 % : %.c
-	$(if $(plain_compiler:0=)$(DEBUG_MAKE),,@)$(if $(is_mswin:0=),rm -f $@; )$(CC) $(LDOUTPUT) $(CFLAGS) $(CPPFLAGS) $(cxxexe) $(TARGET_ARCH) \
+	$(if $(want_plain_compiler:0=)$(DEBUG_MAKE),,@)$(if $(is_mswin:0=),rm -f $@; )$(CC) $(LDOUTPUT) $(CFLAGS) $(CPPFLAGS) $(cxxexe) $(TARGET_ARCH) \
 	  $(call add_drive,$(foreach f,$<,$(abspath $(f))) $(LDLIBS)) $(LDFLAGS)
 
 ifeq ($(filter $(config_setting_goals),$(MAKECMDGOALS)),)
@@ -185,17 +187,17 @@ make_dep ?= Makefile.dep#   This was Makefile_$(CONFIG).dep but is now independe
 # We need "-march=native" to enable include of <xmmintrin.h>.
 # We need "-DMAKEFILE_DEP" for defined() in precompiled_libHh.h.
 cmd_makedep = @echo Creating $(make_dep); \
-  g++ -MM -march=native -DMAKEFILE_DEP $(CPPFLAGS) $(src_c) -std=c++23 $(src_cpp) | \
+  g++ -MM -march=native -DMAKEFILE_DEP $(CPPFLAGS) $(src_c) -std=$(CXX_STD) $(src_cpp) | \
   perl -pe 'binmode(STDOUT); s/\.o:/$(dot_quoted_target):/g; s@ \.\./include/\S+@@g;' >$(make_dep) \
   || rm -f $(make.dep)
 
-ifeq ($(plain_compiler),)
+ifneq ($(want_plain_compiler),1)
   includes += -I$(MeshRoot)
 endif
 
 include_make_dep = $(if $(filter depend clean deepclean cleanall,$(MAKECMDGOALS)),,1)
 
-absdrive ?= $(if $(is_mswin),c:)
+absdrive ?= $(if $(is_mswin:0=),c:)
 
 src_cpp ?= $(wildcard *.cpp)
 src_c ?= $(wildcard *.c)
@@ -205,7 +207,7 @@ obj ?= $(strip $(src_cpp:%.cpp=%.$(extobj)) $(src_c:%.c=%.$(extobj)))
 # Identify all settings that affect the compiled objects, so that changing any one forces a rebuild.
 build_variant = $(CONFIG)-$(notdir $(CC))-$(subst +,p,$(CXX_STD))-$(if $(rel:0=),release,debug)$(if $(wholeopt:0=),-wholeopt)$(if $(PEDANTIC:0=),-pedantic)
 
-ifeq ($(use_pch)$(win_base),11)
+ifeq ($(use_pch)$(is_win_base),11)
   # Objects compiled with -Yu reference the type information in the PCH object.  If that object is newer,
   # the linker reports LNK4206 and discards their debug info.  We let all obj files (except precompiled_libHh.obj)
   # depend on precompiled_libHh.obj.  The $(wildcard) allows it to not exist (for a from-scratch build).
@@ -224,7 +226,7 @@ CXXFLAGS = $(strip $(cxxall) $(if $(rel:0=),$(cxxrel),$(cxxdbg)))
 CFLAGS = $(strip $(c-all) $(if $(rel:0=),$(crel),$(cdbg)))
 
 # Note: lib$(Hw) must be added as prefix to LDLIBS because lib$(Hw)/Hw.cpp references Image and Buffer in libHh.
-ifeq ($(win32),1)
+ifeq ($(is_win32:0=),1)
   Hw = HwWindows
 else
   Hw = HwX
@@ -233,17 +235,17 @@ endif
 my_libs ?= Hh#  This can be replaced by an empty value to omit inclusion of libHh.
 LDLIBS += $(foreach n,$(my_libs),$(MeshRoot)/lib$(n)/$(if $(or $(extlib:lib=),$(if $(use_vs_libs:0=),,1)),,x64/$(if $(rel:0=),ReleaseMD,DebugMD)/)lib$(n).$(extlib))
 
-ifneq ($(filter cygwin unix,$(CONFIG)),)  # For CONFIG = cygwin or unix.
-  system_libs += $(strip $(if $(have_image_libs),jpeg png z) $(if $(have_lapack),lapack))
+ifeq ($(is_unix_like),1)
+  system_libs += $(strip $(if $(have_image_libs:0=),jpeg png z) $(if $(have_lapack:0=),lapack))
   LDLIBS += $(foreach n,$(system_libs),-l$(n))
 endif
 
 LDLIBS += $(other_libs)#  Optionally defined externally.
 LDLIBS += $(last_libs)#  Optionally defined in ./Makefile_config_$(CONFIG).
 
-ifneq ($(have_lapack),)
+ifeq ($(have_lapack),1)
   # The file <lapacke.h> is in either /usr/include/ or /usr/include/lapacke/.
-  ifneq ($(call file_exists,/usr/include/lapacke),)
+  ifeq ($(call file_exists,/usr/include/lapacke),1)
     includes += -I/usr/include/lapacke
   endif
 endif
