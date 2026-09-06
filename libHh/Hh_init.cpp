@@ -199,7 +199,7 @@ void assign_my_signal_handler() {
 
 #endif
 
-#if defined(_MSC_VER)
+#if defined(_MSVC_STL_VERSION)
 int __cdecl my_CrtDbgHook(int nReportType, char* szMsg, int* pnRet) {
   // The heap may be corrupt, so cannot do any dynamic allocation here.
   if (0) std::cerr << "my_CrtDbgHook with no debugger present\n";
@@ -232,7 +232,7 @@ void setup_exception_hooks() {
   // The default behavior is to throw std::bad_alloc
   std::set_new_handler(&my_new_handler);  // Else on Cygwin, no diagnostic is reported (other than nonzero exit code).
 #endif
-#if defined(_MSC_VER)
+#if defined(_MSVC_STL_VERSION)
   if (!IsDebuggerPresent()) {
     // Because the "Just-in-time debugging" no longer seems to work.
     _CrtSetReportHook2(_CRT_RPTHOOK_INSTALL, my_CrtDbgHook);  // Only in Debug.
@@ -311,7 +311,7 @@ void untie_cin_and_cout() {
 }
 
 void warn_if_running_debug_version() {
-#if defined(_MSC_VER)
+#if defined(_MSC_VER) && !defined(__clang__)  // CONFIG=win.
   if (k_debug) showf("Running debug version.\n");
 #endif
 }

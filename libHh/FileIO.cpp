@@ -3,6 +3,7 @@
 
 #include <fcntl.h>     // O_NOINHERIT, O_BINARY
 #include <sys/stat.h>  // struct stat, stat(), struct _stati64, _wstati64()
+#include <version>
 
 #if defined(_WIN32)
 
@@ -34,9 +35,9 @@ HH_REFERENCE_LIB("ole32.lib");  // IFileOperation.
 // Use specified setting.
 #elif 0  // Use to force for testing.
 #define IO_USE_CFSTREAM
-#elif defined(_MSC_VER)
+#elif defined(_MSVC_STL_VERSION)
 #define IO_USE_FSTREAM
-#elif defined(__GNUC__) && !defined(__clang__)
+#elif defined(__GLIBCXX__)
 #define IO_USE_STDIO_FILEBUF
 #else
 #define IO_USE_CFSTREAM
@@ -230,7 +231,7 @@ class ocfstream : public std::ostream {
 
 class RFile::Implementation {
  public:
-  explicit Implementation(FILE* file) : _ifstream(file) {}  // Non-standard extension on win _MSC_VER.
+  explicit Implementation(FILE* file) : _ifstream(file) {}  // Non-standard extension in _MSVC_STL_VERSION C++ runtime.
   std::istream* get_stream() { return &_ifstream; }
 
  private:
@@ -239,7 +240,7 @@ class RFile::Implementation {
 
 class WFile::Implementation {
  public:
-  explicit Implementation(FILE* file) : _ofstream(file) {}  // Non-standard extension on win _MSC_VER.
+  explicit Implementation(FILE* file) : _ofstream(file) {}  // Non-standard extension in _MSVC_STL_VERSION C++ runtime.
   std::ostream* get_stream() { return &_ofstream; }
 
  private:

@@ -1,28 +1,29 @@
-# For clang 64_bit on Windows; it defines _MSC_VER and not __GNUC__.
+# For Windows clang++ compiler, using MSVC STL as C++ library, vcruntime + Microsoft's Universal CRT (ucrt),
+# Win32 threads, and Win32 API.
+# It defines __clang__, _MSC_VER, _MSVC_STL_VERSION, _WIN32, but not __GNUC__!
 
 rel ?= 1#  0=debug or 1=release (usually 1).
 
 include $(dir $(lastword $(MAKEFILE_LIST)))/Makefile_base_clang
 
-# 2018-09-11 LLVM 6.0.1 # LLVM-6.0.1-win64.exe from http://releases.llvm.org/download.html
-# 2019-09-22 LLVM 8.0.1 x86_64-pc-windows-msvc (could have been installed by Visual Studio?)
-# 2020-06-03 LLVM-10.0.0-win64.exe from http://releases.llvm.org/download.html
-# 2024-05-13 LLVM-17.0.1-win64.exe from github releases from http://releases.llvm.org/download.html
 # 2025-10-28 LLVM-20.1.8-win64.exe from https://github.com/llvm/llvm-project/releases
-# "c:/Program Files/LLVM/bin/clang++" --version:
-#  Target: x86_64-pc-windows-msvc
-#  Thread model: posix
-LLVM_ROOT = c:/Progra~1/LLVM
-$(call prepend_PATH,$(LLVM_ROOT)/bin)
+LLVM_ROOT ?= c:/Progra~1/LLVM#  Any other useful paths to search??
+$(if $(call file_exists,$(LLVM_ROOT)),,$(error No C++ compiler found for CONFIG=$(CONFIG). LLVM_ROOT='$(LLVM_ROOT)' not found.  Install LLVM, or set LLVM_ROOT=<dir> in '$(MeshRoot)/Makefile_local_defs'))
+$(call assert_prepend_PATH,$(LLVM_ROOT)/bin)
+
 AR = llvm-ar
 RANLIB = llvm-ranlib
 
 LDFLAGS += -fuse-ld=lld#  Use the (faster) linker from the LLVM toolchain; implies "-Wl,-incremental:no".
 LDFLAGS += -Wl,-debug#  Write a *.pdb file (adjacent to *.exe) to enable stacktrace.
 
-cxxall += -D_CRT_SECURE_NO_WARNINGS
-
-# Note that we require HH_POSIX(fdopen)... because the non-underscore versions do not exist in the clang library.
-# cxxall += -D_CRT_DECLARE_NONSTDC_NAMES=1 -D_CRT_NONSTDC_NO_DEPRECATE
+cxxall += -D_CRT_SECURE_NO_WARNINGS#  Because the C++ library is _MSVC_STL_VERSION.
 
 graphics_libs ?= -lopengl32 -lwinmm -lgdi32 -lcomdlg32 -luser32
+
+# c:/Progra~1/LLVM/bin/clang++ --version:
+#  Target: x86_64-pc-windows-msvc
+#  Thread model: posix
+
+# echo | c:/Progra~1/LLVM/bin/clang++ -x c++ -E -v - >/dev/null  # See tool paths.
+# echo '#include <cstdio>' | c:/Progra~1/LLVM/bin/clang++ -dM -E -x c++ - | grep -E '__GNUC__|__clang__|_UCRT|__MINGW32|_MSVC_STL_VERSION|__GLIBCXX__|_WIN32|__cplusplus|_MSVC_LANG|__CYGWIN'

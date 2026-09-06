@@ -12,10 +12,14 @@ using lapack_int = lapack::integer;
 
 #elif !(defined(_WIN32) || defined(__CYGWIN__))  // unix
 
-#if defined(__GNUC__)
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wredundant-decls"
 #endif
 #include <lapacke.h>  // in either /usr/include/ or /usr/include/lapacke/
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 #else  // cygwin or WIN32
 

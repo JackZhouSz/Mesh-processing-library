@@ -256,6 +256,11 @@ string get_header_info() {
 #else
   config += "-unix";
 #endif
+#if defined(_MSVC_STL_VERSION)
+  config += sform("-stl%d", _MSVC_STL_VERSION);
+#elif defined(__GLIBCXX__)
+  config += sform("-glibcxx%d", __GLIBCXX__);
+#endif
 #if defined(_M_ARM64EC)
   config += "-arm64ec";
 #elif defined(__riscv) && __riscv_xlen == 64

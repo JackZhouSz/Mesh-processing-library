@@ -296,7 +296,7 @@ bool details::assertw_aux2(const char* s) {
 // May return nullptr.
 void* aligned_malloc(size_t alignment, size_t size) {
   // see https://stackoverflow.com/questions/3839922/aligned-malloc-in-gcc
-#if defined(_MSC_VER)  // 2024: Visual Studio still does not support std::aligned_alloc().
+#if defined(_MSVC_STL_VERSION)  // 2024: Visual Studio still does not support std::aligned_alloc().
   return _aligned_malloc(size, alignment);
 #elif defined(__MINGW32__)  // 2024: mingw also lacks it.
   return __mingw_aligned_malloc(size, alignment);
@@ -306,7 +306,7 @@ void* aligned_malloc(size_t alignment, size_t size) {
 }
 
 void aligned_free(void* p) {
-#if defined(_MSC_VER)
+#if defined(_MSVC_STL_VERSION)
   _aligned_free(p);
 #elif defined(__MINGW32__)
   __mingw_aligned_free(p);

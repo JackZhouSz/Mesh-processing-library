@@ -481,8 +481,8 @@ const string& gl_extensions_string();
 
 // GCC warns on casts between incompatible function pointer types, which is inherent to the wglGetProcAddress()
 // pattern; the alternative of casting through `void*` is less portable.
-#if defined(__GNUC__)
-#pragma GCC diagnostic ignored "-Wcast-function-type"
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic ignored "-Wcast-function-type"  // We do not use push/pop as it is too awkward within a macro.
 #endif
 
 #define USE_GL_EXT_MAYBE_AUX(func, type, GetProc) \

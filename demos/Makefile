@@ -8,12 +8,12 @@ ifeq ($(orig_CONFIG),)
   # undefine CONFIG#  Recent feature of make.
   CONFIG :=
   unexport CONFIG
-  $(call prepend_PATH,$(MeshRoot)/bin)
+  $(call assert_prepend_PATH,$(MeshRoot)/bin)
 else
-  $(call prepend_PATH,$(MeshRoot)/bin/$(CONFIG))
+  $(call assert_prepend_PATH,$(MeshRoot)/bin/$(CONFIG))
 endif
 
-$(call prepend_PATH,$(MeshRoot)/demos)  # Allow running bash scripts in local directory.
+$(call assert_prepend_PATH,$(MeshRoot)/demos)  # Allow running bash scripts in local directory.
 
 create_scripts = \
   create_recon_cactus.sh \

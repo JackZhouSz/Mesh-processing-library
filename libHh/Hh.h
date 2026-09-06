@@ -7,14 +7,18 @@
 
 // *** Pre-header.
 
-// These macro definitions have no effect if #include "libHh/Hh.h" is after #include <system_files>,
-// so instead one should adjust project/makefile build settings.
-
-#if defined(_MSC_VER) && !defined(_CRT_SECURE_NO_WARNINGS)
-#define _CRT_SECURE_NO_WARNINGS  // Do not suggest use of *_s() secure function calls.
+// This macro definition has no effect if `#include "libHh/Hh.h"` lies after `#include <Windows.h>`.
+#if defined(_WIN32)
+// If later include <windef.h>, disable macros min and max, e.g. which interfere with std::numeric_limits<T>::max().
+#if !defined(NOMINMAX)
+#define NOMINMAX  // Prevent min() and max() macros in <windows.h>.
+#endif
+// If already defined, undefine them.
+#undef min
+#undef max
 #endif
 
-#if defined(_MSC_VER)
+#if defined(_MSC_VER) && !defined(__clang__)
 // Disable some nitpicky level4 warnings (for -W4).
 #pragma warning(disable : 4127)  // Conditional expression is constant, e.g. "if (0)", "if (1)".
 #pragma warning(disable : 4324)  // Structure was padded due to alignment specifier.
@@ -28,16 +32,6 @@
 #pragma warning(disable : 26437)  // Do not slice.
 #pragma warning(disable : 26444)  // Avoid unnamed objects with custom construction and destruction.
 #pragma warning(disable : 26495)  // Always initialize a member variable.
-#endif
-
-#if defined(_WIN32)
-// If later include <windef.h>, disable macros min and max, e.g. which interfere with std::numeric_limits<T>::max().
-#if !defined(NOMINMAX)
-#define NOMINMAX  // Prevent min() and max() macros in <windows.h>.
-#endif
-// If already defined, undefine them.
-#undef min
-#undef max
 #endif
 
 #if defined(_DEBUG) || defined(DEBUG) || (!defined(_MSC_VER) && !defined(NDEBUG))
@@ -80,7 +74,7 @@
 
 #define HH_PRAGMA(...) _Pragma(HH_STR(__VA_ARGS__))
 
-#if defined(_MSC_VER)
+#if defined(_MSVC_STL_VERSION)
 #define HH_POSIX(x) _##x  // On Windows, Unix functions like open(), read(), dup() have a leading underscore.
 #else
 #define HH_POSIX(x) x

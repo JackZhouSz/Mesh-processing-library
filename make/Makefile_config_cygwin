@@ -1,3 +1,7 @@
+# For Cygwin-native (default g++) compiler, using Cygwin GCC's libstdc++, newlib cygwin1.dll runtime,
+# Cygwin pthreads, Cygwin POSIX packages, and graphics using X11.
+# It defines __GNUC__, __GLIBCXX__, __unix__, and __CYGWIN__, but no _WIN32!
+
 rel ?= 1#  0=debug or 1=release  (usually 1)
 
 # Strict -std=c++NN defines __STRICT_ANSI__, which hides POSIX/BSD declarations in Cygwin's headers
@@ -29,4 +33,6 @@ last_libs += -lstdc++exp#  For stacktrace.
 # GCC command line."
 
 # See ~/bin/stackdump, a script I wrote to parse the hex values in *.stackdump and gather info using gdb
-# (set path=(~/git/hh_src/bin/cygwin $path:q); test_coredump)
+
+# echo | g++ -x c++ -E -v - >/dev/null  # See tool paths.
+# echo '#include <cstdio>' | g++ -dM -E -x c++ - | grep -E '__GNUC__|__clang__|_UCRT|__MINGW32|_MSVC_STL_VERSION|__GLIBCXX__|_WIN32|__cplusplus|_MSVC_LANG|__CYGWIN'
