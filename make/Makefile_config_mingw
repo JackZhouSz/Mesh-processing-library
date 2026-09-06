@@ -7,7 +7,7 @@ rel ?= 1#  0=debug or 1=release (usually 1).
 include $(dir $(lastword $(MAKEFILE_LIST)))/Makefile_base_gcc
 
 MINGW_ROOT ?= $(lastword $(sort $(wildcard c:/mingw-w64/*/mingw64)))#  Any other useful paths to search??
-$(if $(call file_exists,$(MINGW_ROOT)),,$(error No C++ compiler found for CONFIG=$(CONFIG).  MINGW_ROOT='$(MINGW_ROOT)' not found.  Install mingw-w64, or set MINGW_ROOT=<dir> in '$(MeshRoot)/Makefile_local_defs'))
+$(if $(call file_exists,$(MINGW_ROOT)/bin),,$(error No C++ compiler found for CONFIG=$(CONFIG).  MINGW_ROOT/bin='$(MINGW_ROOT)/bin' not found.  Install mingw-w64, or set MINGW_ROOT=<dir> in '$(MeshRoot)/Makefile_local_defs'))
 $(call assert_prepend_PATH,$(MINGW_ROOT)/bin)
 
 graphics_libs = -lopengl32 -lwinmm -lgdi32 -lcomdlg32 -luser32

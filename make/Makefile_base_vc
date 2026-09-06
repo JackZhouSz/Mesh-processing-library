@@ -6,6 +6,8 @@
 
 ifeq ($(msvc),2022)
 
+  # ?? I need to set these automatically.
+  # However I hope to avoid the overhead of $(shell) calls such as vswhere.exe and vcvarsall.bat .
   # msvcbuild = 14.40.33807
   msvcbuild = 14.44.35207
   # windowskit = 10.0.22621.0
